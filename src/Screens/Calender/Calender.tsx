@@ -1,4 +1,11 @@
-import { View, StyleSheet, Text, FlatList } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  Text,
+  FlatList,
+  AppState,
+  Alert,
+} from 'react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import { Agenda } from 'react-native-calendars';
 import moment from 'moment';
@@ -17,6 +24,15 @@ const CalendarScreen = () => {
   const fetchedMonths = useRef<Set<string>>(new Set());
 
   useEffect(() => {
+    const subscription = AppState.addEventListener('change', state => {
+      if (state === 'active') {
+        loadCalendarEvents(new Date());
+      }
+    });
+
+    return () => subscription.remove();
+  }, []);
+  useEffect(() => {
     const today = new Date();
     loadCalendarEvents(today);
   }, []);
@@ -30,7 +46,13 @@ const CalendarScreen = () => {
     const end = moment(baseDate).endOf('month').toISOString();
 
     const status = await RNCalendarEvents.requestPermissions();
-    if (status !== 'authorized') return;
+    if (status !== 'authorized') {
+      Alert.alert(
+        'Permission Denied',
+        'Please allow calendar access from settings.',
+      );
+      return;
+    }
 
     const events = await RNCalendarEvents.fetchAllEvents(start, end);
     const eventKeySet = new Set();
